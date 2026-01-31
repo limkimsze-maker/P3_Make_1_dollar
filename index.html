@@ -466,7 +466,7 @@
       flex-wrap:wrap;
       background:linear-gradient(180deg, #fff, rgba(2,6,23,.015));
     }
-  
+
     /* ====== Game add-on (HUD + shop item art) ====== */
     .itemHero{
       display:flex;
@@ -493,11 +493,49 @@
     .itemText{min-width:0}
     .itemTitle{font-weight:1000; font-size:16px; line-height:1.15;}
     .itemSub{font-weight:900; font-size:12px; color:var(--muted); margin-top:2px;}
-    
 
     .pill#bgmBtn.off{opacity:.75}
 
-</style>
+    /* ====== Added: post-win choice popup (minimal, does not touch existing UI) ====== */
+    .sqModalOverlay{
+      position:fixed; inset:0;
+      background:rgba(2,6,23,.52);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:9999;
+    }
+    .sqModal{
+      width:min(520px, 100%);
+      background:#fff;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:18px;
+      box-shadow:0 22px 60px rgba(2,6,23,.25);
+      overflow:hidden;
+    }
+    .sqModalHead{
+      padding:14px 14px 10px;
+      background:linear-gradient(90deg, rgba(14,165,233,.12), rgba(139,92,246,.10));
+      border-bottom:1px solid rgba(15,23,42,.10);
+      font-weight:1000;
+    }
+    .sqModalBody{
+      padding:12px 14px 14px;
+      font-weight:900;
+      color:rgba(15,23,42,.85);
+      line-height:1.25;
+    }
+    .sqModalBtns{
+      display:flex;
+      gap:10px;
+      padding:0 14px 14px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .sqModalBtns .btn{padding:10px 12px; border-radius:14px}
+    .sqModalBtns .btn.ghost{border-radius:14px}
+  </style>
 </head>
 
 <body>
@@ -510,13 +548,11 @@
         <div class="subtitle">Tap coins → Check coins → Type answer → Check answer</div>
       </div>
       <div class="pillrow">
-        
-        
         <div class="pill" id="bgmBtn" role="button" tabindex="0" title="Background music" style="cursor:pointer">🎵 Music: On</div>
-<div class="pill" title="Time Challenge"><span class="dot warn" id="dotT"></span>⏱ <span id="timerText">00:00</span></div>
+        <div class="pill" title="Time Challenge"><span class="dot warn" id="dotT"></span>⏱ <span id="timerText">00:00</span></div>
         <div class="pill" title="Speed Streak"><span class="dot warn" id="dotS"></span>🔥 <span id="streakText">0</span></div>
         <div class="pill" title="Target time"><span class="dot warn" id="dotL"></span>Target: 00:45</div>
-<div class="pill"><span class="dot warn" id="dot1"></span>Step 1: Coins</div>
+        <div class="pill"><span class="dot warn" id="dot1"></span>Step 1: Coins</div>
         <div class="pill"><span class="dot warn" id="dot2"></span>Step 2: Answer</div>
         <div class="pill"><span class="dot warn" id="dot3"></span>Finish</div>
       </div>
@@ -666,8 +702,23 @@
       <div class="note">Score locks to 1 when completed.</div>
     </div>
   </div>
-  <audio id="bgmAudio" loop preload="auto" src="./puzzle-game-bright-casual-video-game-music-249202.mp3"></audio>
 
+  <!-- ====== Added: Post-win choice popup (hidden until correct) ====== -->
+  <div class="sqModalOverlay" id="sqPostWin" aria-hidden="true">
+    <div class="sqModal" role="dialog" aria-modal="true" aria-labelledby="sqPostWinTitle">
+      <div class="sqModalHead" id="sqPostWinTitle">Next step</div>
+      <div class="sqModalBody">
+        Do you want to buy other things or you want to practise buying more things or the same value?
+      </div>
+      <div class="sqModalBtns">
+        <button class="btn ghost" type="button" id="sqPostWinCancel">Cancel</button>
+        <button class="btn secondary" type="button" id="sqPostWinSame">Practise same value</button>
+        <button class="btn" type="button" id="sqPostWinOther">Choose other things</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgmAudio" loop preload="auto" src="./puzzle-game-bright-casual-video-game-music-249202.mp3"></audio>
 
   <audio id="sndCorrect" preload="auto" src="./correct.mp3?v=20260130a"></audio>
   <audio id="sndWrong" preload="auto" src="./wrong.mp3?v=20260130a"></audio>
@@ -916,6 +967,43 @@ function addToken(v){
       }catch(e){}
     }
 
+    /* ====== Added: post-win choice logic (popup with 3 options) ====== */
+    (function(){
+      const HUB_URL = "https://limkimsze-maker.github.io/P3_Saving_Quest_Making_Money_Up_To_100/";
+      const overlay = document.getElementById("sqPostWin");
+      const btnOther = document.getElementById("sqPostWinOther");
+      const btnSame  = document.getElementById("sqPostWinSame");
+      const btnCancel= document.getElementById("sqPostWinCancel");
+
+      function close(){
+        if(!overlay) return;
+        overlay.style.display = "none";
+        overlay.setAttribute("aria-hidden","true");
+      }
+      function open(){
+        if(!overlay) return;
+        overlay.style.display = "flex";
+        overlay.setAttribute("aria-hidden","false");
+        // focus first meaningful action
+        try{ btnOther && btnOther.focus(); }catch(e){}
+      }
+
+      window.__SQ_POST_WIN__ = { open, close, HUB_URL };
+
+      if(btnOther) btnOther.addEventListener("click", ()=>{ location.href = HUB_URL; });
+      if(btnSame)  btnSame.addEventListener("click", ()=>{ location.reload(); });
+      if(btnCancel)btnCancel.addEventListener("click", close);
+
+      if(overlay){
+        overlay.addEventListener("click", (e)=>{
+          if(e.target === overlay) close();
+        });
+        window.addEventListener("keydown", (e)=>{
+          if(overlay.style.display === "flex" && e.key === "Escape") close();
+        }, {passive:true});
+      }
+    })();
+
     function checkAnswer(){
       if(finished || !stage1OK) return;
 
@@ -936,6 +1024,15 @@ function addToken(v){
         // Score locks to 1
         trySendXAPI(1, "Well done!");
         lockUIAfterFinish();
+
+        // ====== Added: prompt after correct ======
+        try{
+          setTimeout(()=>{
+            if(window.__SQ_POST_WIN__ && typeof window.__SQ_POST_WIN__.open === "function"){
+              window.__SQ_POST_WIN__.open();
+            }
+          }, 250);
+        }catch(e){}
       }else{
         shake($("#answerLine"));
         play(sndWrong);

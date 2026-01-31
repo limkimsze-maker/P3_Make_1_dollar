@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- /standard (Kim Sze) -->
+  <link rel="icon" href="./kimsze_sharp16.ico?v=20260111a" sizes="any">
+  <link rel="shortcut icon" href="./kimsze_sharp16.ico?v=20260111a">
+
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>Money — Make $1 (Buy a Pen)</title>
+
+  <!-- ✅ Always-Clear on Load (Default Build Contract) -->
+  <script>
+  (function(){
+    const ACTIVITY_ID = "https://limkimsze-maker.github.io/MrLim_Pen_1Dollar_Coins/";
+    try{
+      const del = [];
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(!k) continue;
+
+        // Primary + scoped keys
+        if(k === ACTIVITY_ID) del.push(k);
+        if(k.startsWith(ACTIVITY_ID+"::")) del.push(k);
+
+        // Legacy / common keys
+        if(k.startsWith("sls_scope::"+ACTIVITY_ID)) del.push(k);
+        if(k.startsWith("UFCO-firstSubmit::"+ACTIVITY_ID)) del.push(k);
+
+        // Payload families (treat as prefix)
+        if(k.startsWith("sls_unlike_payload::"+ACTIVITY_ID)) del.push(k);
+
+        // Safety: any explicit suffix variants you may have used
+        if(k.startsWith("UFCO-firstSubmit::")) { /* do not nuke all apps */ }
+      }
+
+      // clear common session flags (localStorage)
+      del.push("UFCO-session","UFCO-resume","UFCO-last");
+
+      del.forEach(key=>{ try{ localStorage.removeItem(key); }catch(e){} });
+
+      // also clear common session flags (sessionStorage)
+      try{
+        ["UFCO-session","UFCO-resume","UFCO-last"].forEach(k=>{ try{ sessionStorage.removeItem(k); }catch(e){} });
+      }catch(e){}
+
+      // broadcast clear to sibling tabs
+      try{
+        const msg = {type:"clear", activityId: ACTIVITY_ID, ts: Date.now()};
+        const bc = new BroadcastChannel("xapi-state");
+        bc.postMessage(msg);
+        bc.close();
+      }catch(e){}
+    }catch(e){}
+    window.__ACTIVITY_ID__ = ACTIVITY_ID;
+  })();
+  </script>
+
+  <!-- Counter.dev (paste your real data-id from your Make100 template) -->
+  <!-- <script src="https://cdn.counter.dev/script.js" data-id="YOUR_COUNTERDEV_DATA_ID" data-utcoffset="8"></script> -->
+
+  <style>
+    :root{
+      --bg1:#f7fbff;
+      --bg2:#fff7ed;
+      --card:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+
+      /* Make100-style accent */
+      --accent:#0ea5e9;
+      --accent2:#8b5cf6;
+
+      --good:#16a34a;
+      --bad:#e11d48;
+      --warn:#f59e0b;
+
+      --mat1:#dcfce7;
+      --mat2:#bbf7d0;
+
+      --shadow:0 16px 40px rgba(2,6,23,.12);
+      --radius:22px;
+      --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--ink);
+      background:
+        radial-gradient(900px 520px at 15% 12%, rgba(14,165,233,.14), transparent 55%),
+        radial-gradient(900px 520px at 85% 18%, rgba(139,92,246,.14), transparent 55%),
+        radial-gradient(900px 520px at 50% 95%, rgba(245,158,11,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .app{
+      width:min(1120px, 100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .topbar{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      background:linear-gradient(90deg, rgba(14,165,233,.12), rgba(139,92,246,.10));
+      border-bottom:1px solid var(--line);
+      flex-wrap:wrap;
+    }
+    .titlewrap{display:flex; flex-direction:column; gap:2px}
+    h1{margin:0; font-size:18px; letter-spacing:.2px;}
+    .subtitle{font-size:13px; color:var(--muted); font-weight:800}
+
+    .pillrow{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{
+      cursor:default;
+
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      background:#fff;
+      color:var(--ink);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      user-select:none;
+      font-weight:1000;
+    }
+    .dot{width:9px;height:9px;border-radius:50%; background:var(--muted);}
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+
+    .content{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+      padding:14px;
+    }
+    @media (max-width: 920px){
+      .content{grid-template-columns:1fr}
+      .pillrow{justify-content:flex-start}
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      background:#fff;
+    }
+
+    .q{
+      font-size:18px;
+      line-height:1.25;
+      font-weight:1000;
+    }
+    .q small{font-weight:900; color:var(--muted); font-size:13px}
+    .note{font-size:12px; color:var(--muted); font-weight:900}
+
+    .equation{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:10px;
+      border:1px dashed rgba(15,23,42,.22);
+      border-radius:16px;
+      background:linear-gradient(180deg, rgba(14,165,233,.06), rgba(139,92,246,.04));
+      margin-top:10px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid rgba(15,23,42,.16);
+      border-radius:999px;
+      background:#fff;
+      font-weight:1000;
+    }
+    .chip .c{color:var(--muted); font-weight:1000}
+    .arrow{font-weight:1000; color:var(--muted);}
+
+    .inbox{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:14px;
+      border:2px solid rgba(22,163,74,.26);
+      background:rgba(22,163,74,.10);
+      font-weight:1000;
+    }
+    .inbox input{
+      width:92px;
+      font-size:16px;
+      font-weight:1000;
+      border:none;
+      outline:none;
+      background:transparent;
+      text-align:center;
+    }
+    .inbox input:disabled{opacity:.55}
+
+    /* Pocket */
+    .pocket{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .pocketTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+   .pocketCoins{display:flex; gap:10px; flex-wrap:wrap}
+
+
+   /* I have coins: match bank coin design (smaller) */
+.pocketCoinMini{
+  display:inline-block;
+  transform:scale(.76);
+  transform-origin:left top;
+}
+.pocketCoinMini .coin{ width:68px; height:68px; }
+
+
+    /* Big mat */
+    .matWrap{display:flex; flex-direction:column; gap:10px; margin-top:10px;}
+    .mat{
+      background:linear-gradient(180deg, var(--mat1), var(--mat2));
+      border:2px solid rgba(22,163,74,.28);
+      border-radius:20px;
+      padding:12px;
+      min-height:190px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      position:relative;
+    }
+    .matHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .matHead .label{font-weight:1000; font-size:14px;}
+    .matHead .mini{font-size:12px; color:rgba(15,23,42,.72); font-weight:900;}
+    .matCoins{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start;}
+    .matEmpty{
+      color:rgba(15,23,42,.55);
+      font-weight:900;
+      font-size:13px;
+      padding:6px 2px;
+    }
+
+    /* REPLACE your existing .token / .token:active / .token .x with this */
+.token{
+  position:relative;
+  display:inline-block;
+  cursor:pointer;
+  user-select:none;
+  transition:transform .08s ease;
+}
+.token:active{transform:scale(.98)}
+.token .coin{ width:68px; height:68px; }
+
+.token .x{
+  position:absolute;
+  right:-6px; top:-6px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--bad);
+  color:#fff;
+  font-size:12px;
+  display:grid; place-items:center;
+  border:2px solid #fff;
+  box-shadow:0 8px 14px rgba(2,6,23,.16);
+  z-index:3;
+}
+
+
+    .row2{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .btn{
+      border:none;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:1000;
+      background:linear-gradient(180deg, rgba(14,165,233,.95), rgba(14,165,233,.78));
+      color:#fff;
+      box-shadow:0 10px 18px rgba(14,165,233,.22);
+    }
+    .btn.secondary{
+      background:linear-gradient(180deg, rgba(15,23,42,.92), rgba(15,23,42,.78));
+      box-shadow:0 10px 18px rgba(2,6,23,.16);
+    }
+    .btn.ghost{
+      background:#fff;
+      color:var(--ink);
+      border:1px solid rgba(15,23,42,.16);
+      box-shadow:none;
+    }
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+
+    .status{
+      font-weight:1000;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .status.good{color:var(--good)}
+    .status.bad{color:var(--bad)}
+
+    .answerLine{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:10px;
+      border-radius:16px;
+      border:1px solid rgba(15,23,42,.14);
+      background:rgba(2,6,23,.02);
+    }
+    .answerLine .bigbox{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:14px;
+      border:2px solid rgba(22,163,74,.26);
+      background:rgba(22,163,74,.10);
+      font-weight:1000;
+    }
+    .answerLine .bigbox input{
+      width:120px;
+      font-size:16px;
+      font-weight:1000;
+      border:none;
+      outline:none;
+      background:transparent;
+      text-align:center;
+    }
+    .answerLine input:disabled{opacity:.55}
+
+    .side{display:flex; flex-direction:column; gap:14px;}
+    .coinBank{display:flex; flex-direction:column; gap:10px;}
+    .coinRow{display:flex; gap:10px; flex-wrap:wrap;}
+    .coinBtn{border:none; cursor:pointer; padding:0; background:transparent; user-select:none;}
+
+    /* Generic “mock” coins (copyright-safe) */
+    .coin{
+      width:68px;height:68px;border-radius:50%;
+      display:grid; place-items:center;
+      position:relative;
+      filter: drop-shadow(0 8px 14px rgba(2,6,23,.14));
+      transform: translateZ(0);
+    }
+    .coin:before{
+      content:"";
+      position:absolute; inset:0;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 40%),
+        radial-gradient(circle at 70% 75%, rgba(0,0,0,.14), rgba(0,0,0,0) 50%);
+      mix-blend-mode:overlay;
+      pointer-events:none;
+    }
+    .coin .ring{
+      position:absolute; inset:6px;
+      border-radius:50%;
+      border:2px dashed rgba(15,23,42,.18);
+      pointer-events:none;
+    }
+    .coin .inner{
+      width:52px;height:52px;border-radius:50%;
+      display:grid; place-items:center;
+      border:2px solid rgba(15,23,42,.16);
+      background:rgba(255,255,255,.35);
+      backdrop-filter: blur(3px);
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+    .coin .inner span{font-size:16px}
+    .coin .inner small{
+      display:block;
+      font-size:10px;
+      font-weight:1000;
+      letter-spacing:.7px;
+      opacity:.85;
+      margin-top:1px;
+      text-transform:uppercase;
+    }
+    .coin.c5{  background: radial-gradient(circle at 30% 25%, #fff, #c7f9cc 40%, #4ade80 100%); }
+    .coin.c10{ background: radial-gradient(circle at 30% 25%, #fff, #bae6fd 40%, #38bdf8 100%); }
+    .coin.c20{ background: radial-gradient(circle at 30% 25%, #fff, #fecaca 40%, #fb7185 100%); }
+    .coin.c50{ background: radial-gradient(circle at 30% 25%, #fff, #fde68a 40%, #f59e0b 100%); }
+
+    /* Sounds */
+    .soundbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+    .toggle{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.16);
+      background:#fff;
+      font-weight:1000;
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle input{accent-color:var(--accent)}
+    .smallbtn{
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(15,23,42,.16);
+      background:#fff;
+      cursor:pointer;
+      font-weight:1000;
+    }
+
+    /* Confetti */
+    #confetti{position:absolute; inset:0; pointer-events:none; display:none;}
+    #xapiBase{display:none}
+
+    .shake{animation:shake .35s ease;}
+    @keyframes shake{
+      0%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+      100%{transform:translateX(0)}
+    }
+
+    .credit{
+      padding:10px 14px;
+      border-top:1px solid var(--line);
+      font-size:12px;
+      color:var(--muted);
+      font-weight:900;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      background:linear-gradient(180deg, #fff, rgba(2,6,23,.015));
+    }
+  
+    /* ====== Game add-on (HUD + shop item art) ====== */
+    .itemHero{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:12px;
+      border-radius:18px;
+      border:1px solid rgba(15,23,42,.14);
+      background:linear-gradient(180deg, rgba(14,165,233,.06), rgba(139,92,246,.05));
+      margin-bottom:10px;
+      position:relative;
+      overflow:hidden;
+    }
+    .itemHero:before{
+      content:"";
+      position:absolute;
+      inset:-40px -40px auto auto;
+      width:220px;height:220px;
+      border-radius:50%;
+      background:radial-gradient(circle at 30% 30%, rgba(245,158,11,.22), transparent 60%);
+      pointer-events:none;
+    }
+    .itemSvg{flex:0 0 auto}
+    .itemText{min-width:0}
+    .itemTitle{font-weight:1000; font-size:16px; line-height:1.15;}
+    .itemSub{font-weight:900; font-size:12px; color:var(--muted); margin-top:2px;}
+    
+
+    .pill#bgmBtn.off{opacity:.75}
+
+</style>
+</head>
+
+<body>
+  <div class="app" id="app">
+    <canvas id="confetti"></canvas>
+
+    <div class="topbar">
+      <div class="titlewrap">
+        <h1>Money — Make $1 (Buy a Pen)</h1>
+        <div class="subtitle">Tap coins → Check coins → Type answer → Check answer</div>
+      </div>
+      <div class="pillrow">
+        
+        
+        <div class="pill" id="bgmBtn" role="button" tabindex="0" title="Background music" style="cursor:pointer">🎵 Music: On</div>
+<div class="pill" title="Time Challenge"><span class="dot warn" id="dotT"></span>⏱ <span id="timerText">00:00</span></div>
+        <div class="pill" title="Speed Streak"><span class="dot warn" id="dotS"></span>🔥 <span id="streakText">0</span></div>
+        <div class="pill" title="Target time"><span class="dot warn" id="dotL"></span>Target: 00:45</div>
+<div class="pill"><span class="dot warn" id="dot1"></span>Step 1: Coins</div>
+        <div class="pill"><span class="dot warn" id="dot2"></span>Step 2: Answer</div>
+        <div class="pill"><span class="dot warn" id="dot3"></span>Finish</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- LEFT -->
+      <div class="card">
+
+        <div class="itemHero">
+          <svg class="itemSvg" width="84" height="64" viewBox="0 0 84 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g fill="none" stroke="rgba(15,23,42,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 46l30-30c2-2 6-2 8 0l10 10c2 2 2 6 0 8L36 64H18z" fill="rgba(14,165,233,.14)"/>
+    <path d="M48 16l20 20"/>
+    <path d="M22 50l12 12"/>
+    <path d="M18 46l10 0 10 10 0 8" />
+    <path d="M60 14l8-8 10 10-8 8" fill="rgba(245,158,11,.18)"/>
+    <path d="M14 60h18" />
+  </g>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-weight="900" font-size="12" fill="rgba(15,23,42,.92)">
+    <text x="6" y="14">$1</text>
+  </g>
+</svg>
+          <div class="itemText">
+            <div class="itemTitle">Pen</div>
+            <div class="itemSub">Goal item: $1 pen</div>
+          </div>
+        </div>
+        <div class="q" id="qText">
+          How much more money do <span style="color:var(--accent);">I</span> need to buy a pen that costs
+          <span style="color:var(--good);">$1</span>?
+          <br><small>(100¢ = $1)</small>
+        </div>
+
+        <div class="pocket">
+          <div class="pocketTop">
+            <div class="chip">
+              I have: <span id="haveCents">—</span><span class="c">¢</span>
+            </div>
+            <div class="note">Goal: <b>100¢</b>. Find how many cents more he needs.</div>
+          </div>
+          <div class="pocketCoins" id="haveCoins"></div>
+        </div>
+
+        <div class="equation" aria-label="equation">
+          <span class="chip"><span id="haveCents2">—</span><span class="c">¢</span></span>
+          <span class="arrow">+</span>
+          <span class="inbox">
+            <input id="needInputEq" inputmode="numeric" pattern="[0-9]*" placeholder="__" disabled>
+            <span class="c">¢</span>
+          </span>
+          <span class="arrow">=</span>
+          <span class="chip"><span>100</span><span class="c">¢</span> <span style="color:var(--muted)">(=$1)</span></span>
+        </div>
+
+        <div class="matWrap">
+          <div class="mat" id="mat">
+            <div class="matHead">
+              <div class="label">Big Money Mat (place coins here)</div>
+              <div class="mini">Make exactly <b><span id="needCents">—</span>¢</b> more.</div>
+            </div>
+            <div class="matCoins" id="matCoins"></div>
+            <div class="matEmpty" id="matEmpty">Place coins on the mat.</div>
+          </div>
+
+          <div class="row2">
+            <div class="status" id="status1">Step 1: Put the correct coins on the mat.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+              <button class="btn ghost" id="clearMatBtn" type="button">Clear</button>
+              <button class="btn" id="checkCoinsBtn" type="button">Check coins</button>
+            </div>
+          </div>
+
+          <div class="answerLine" id="answerLine">
+            <span class="bigbox">
+              <input id="needInputSentence" inputmode="numeric" pattern="[0-9]*" placeholder="__" disabled>
+              <span>¢</span>
+            </span>
+            <span style="font-weight:1000;">more is needed.</span>
+
+            <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn secondary" id="checkAnsBtn" type="button" disabled>Check answer</button>
+              <button class="btn ghost" id="newQBtn" type="button">New question</button>
+              <button class="btn ghost" id="newSessionBtn" type="button" title="Clears this activity's saved keys, then reloads">New Session — Clear</button>
+            </div>
+          </div>
+
+          <div class="note" id="note2">After Step 1 is correct, type the cents in BOTH green boxes.</div>
+        </div>
+
+        <!-- Hidden xAPI base (kept in DOM for SLS) -->
+        <div id="xapiBase">
+          <input id="score-input" type="text" value="0">
+          <input id="feedback-input" type="text" value="">
+          <script src="./xapiwrapper.min.js"></script>
+          <script src="./index.js"></script>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="side">
+        <div class="card coinBank">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div style="font-weight:1000;">Coins (tap to add to mat)</div>
+            <div class="note">5¢, 10¢, 20¢, 50¢</div>
+          </div>
+          <div class="coinRow" style="margin-top:10px;">
+            <button class="coinBtn" data-v="5" aria-label="Add 5 cents coin">
+              <div class="coin c5"><div class="ring"></div><div class="inner"><div><span>5</span><small>cents</small></div></div></div>
+            </button>
+            <button class="coinBtn" data-v="10" aria-label="Add 10 cents coin">
+              <div class="coin c10"><div class="ring"></div><div class="inner"><div><span>10</span><small>cents</small></div></div></div>
+            </button>
+            <button class="coinBtn" data-v="20" aria-label="Add 20 cents coin">
+              <div class="coin c20"><div class="ring"></div><div class="inner"><div><span>20</span><small>cents</small></div></div></div>
+            </button>
+            <button class="coinBtn" data-v="50" aria-label="Add 50 cents coin">
+              <div class="coin c50"><div class="ring"></div><div class="inner"><div><span>50</span><small>cents</small></div></div></div>
+            </button>
+          </div>
+          <div class="note">Tip: Tap a coin on the mat to remove it.</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div style="font-weight:1000;">Sound Kit</div>
+            <div class="note">Unlock if blocked.</div>
+          </div>
+
+          <div class="soundbar" style="margin-top:10px;">
+            <label class="toggle"><input type="checkbox" id="soundOn" checked>Sounds on</label>
+            <button class="smallbtn" id="unlockAudioBtn" type="button">🔓 Unlock audio</button>
+            <button class="smallbtn" id="testCorrectBtn" type="button">Test ✅</button>
+            <button class="smallbtn" id="testWrongBtn" type="button">Test ❌</button>
+            <button class="smallbtn" id="testClockBtn" type="button">Test ⏱️</button>
+          </div>
+
+          <div class="note" style="margin-top:10px;">
+            If you don’t hear sound on mobile: press <b>Unlock audio</b> once, then test again.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="credit">
+      <div>Designed by Lim Kim Sze © 2026</div>
+      <div class="note">Score locks to 1 when completed.</div>
+    </div>
+  </div>
+  <audio id="bgmAudio" loop preload="auto" src="./puzzle-game-bright-casual-video-game-music-249202.mp3"></audio>
+
+
+  <audio id="sndCorrect" preload="auto" src="./correct.mp3?v=20260130a"></audio>
+  <audio id="sndWrong" preload="auto" src="./wrong.mp3?v=20260130a"></audio>
+  <audio id="sndClock" preload="auto" src="./clock.mp3?v=20260130a"></audio>
+
+  <script>
+    // ---------- Helpers ----------
+    const $ = (s, el=document)=>el.querySelector(s);
+    const $$ = (s, el=document)=>Array.from(el.querySelectorAll(s));
+
+    const app = $("#app");
+    const mat = $("#mat");
+    const matCoins = $("#matCoins");
+    const matEmpty = $("#matEmpty");
+
+    const haveCentsEl = $("#haveCents");
+    const haveCents2El = $("#haveCents2");
+    const haveCoinsEl = $("#haveCoins");
+    const needCentsEl = $("#needCents");
+
+    const needInputEq = $("#needInputEq");
+    const needInputSentence = $("#needInputSentence");
+
+    const checkCoinsBtn = $("#checkCoinsBtn");
+    const clearMatBtn = $("#clearMatBtn");
+    const checkAnsBtn = $("#checkAnsBtn");
+    const newQBtn = $("#newQBtn");
+    const newSessionBtn = $("#newSessionBtn");
+
+    const status1 = $("#status1");
+    const dot1 = $("#dot1"), dot2=$("#dot2"), dot3=$("#dot3");
+
+    const soundOn = $("#soundOn");
+    const sndCorrect = $("#sndCorrect");
+    const sndWrong = $("#sndWrong");
+    const sndClock = $("#sndClock");
+
+    const ACTIVITY_ID = window.__ACTIVITY_ID__ || "activity";
+
+    let have = 0;
+    let need = 0;
+    let stage1OK = false;
+    let finished = false;
+
+    function clampNumStr(v){
+      v = (v||"").toString().replace(/[^\d]/g,"");
+      if(v==="") return "";
+      v = v.replace(/^0+(?=\d)/, "");
+      return v;
+    }
+
+    async function play(aud){
+      if(!soundOn.checked) return;
+      try{ aud.currentTime = 0; await aud.play(); }catch(e){}
+    }
+
+    function shake(el){
+      el.classList.remove("shake");
+      void el.offsetWidth;
+      el.classList.add("shake");
+    }
+
+    function setDots(){
+      dot1.className = "dot " + (stage1OK ? "good" : "warn");
+      dot2.className = "dot " + (finished ? "good" : (stage1OK ? "warn" : "warn"));
+      dot3.className = "dot " + (finished ? "good" : "warn");
+    }
+
+    function matTotal(){
+      let t = 0;
+      $$(".token", matCoins).forEach(tok=> t += Number(tok.dataset.v||0));
+      return t;
+    }
+
+    function renderMatEmpty(){
+      const hasAny = $$(".token", matCoins).length > 0;
+      matEmpty.style.display = hasAny ? "none" : "block";
+    }
+function addToken(v){
+  if(finished || stage1OK) return;
+
+  const tok = document.createElement("div");
+  tok.className = "token";
+  tok.dataset.v = String(v);
+
+  const cls =
+    (v===5)  ? "c5"  :
+    (v===10) ? "c10" :
+    (v===20) ? "c20" : "c50";
+
+  tok.innerHTML = `
+    <div class="coin ${cls}">
+      <div class="ring"></div>
+      <div class="inner">
+        <div><span>${v}</span><small>cents</small></div>
+      </div>
+    </div>
+    <span class="x">×</span>
+  `;
+
+  tok.title = "Tap to remove";
+
+  tok.addEventListener("click", ()=>{
+    if(stage1OK || finished) return;
+    tok.remove();
+    renderMatEmpty();
+  });
+
+  matCoins.appendChild(tok);
+  renderMatEmpty();
+}
+
+    function clearMat(){
+      if(stage1OK || finished) return;
+      matCoins.innerHTML = "";
+      renderMatEmpty();
+    }
+
+    function greedyCoins(amount){
+      const denoms = [50,20,10,5];
+      const arr = [];
+      let a = amount;
+      for(const d of denoms){
+        while(a >= d){
+          arr.push(d);
+          a -= d;
+        }
+      }
+      return arr;
+    }
+
+   function coinMini(v){
+  const wrap = document.createElement("div");
+  wrap.className = "pocketCoinMini";
+
+  const cls =
+    (v===5)  ? "c5"  :
+    (v===10) ? "c10" :
+    (v===20) ? "c20" : "c50";
+
+  wrap.innerHTML = `
+    <div class="coin ${cls}">
+      <div class="ring"></div>
+      <div class="inner">
+        <div><span>${v}</span><small>cents</small></div>
+      </div>
+    </div>
+  `;
+  return wrap;
+}
+
+    function lockMatTokens(){
+      $$(".token", matCoins).forEach(tok=>{
+        tok.style.cursor = "default";
+        const x = tok.querySelector(".x");
+        if(x) x.style.display = "none";
+      });
+    }
+
+    function enableAnswerInputs(){
+      needInputEq.disabled = false;
+      needInputSentence.disabled = false;
+      checkAnsBtn.disabled = false;
+      status1.textContent = "✅ Correct! Now type the cents into BOTH green boxes.";
+      status1.className = "status good";
+    }
+
+    function resetToNotDone(){
+      // explicit reset (allowed to return score to 0)
+      try{ $("#score-input").value = "0"; $("#feedback-input").value = ""; }catch(e){}
+      finished = false;
+      stage1OK = false;
+      hideConfetti();
+      setDots();
+    }
+
+    function newQuestion(){
+      resetToNotDone();
+
+      have = (Math.floor(Math.random()*19)+1)*5; // 5..95
+      need = 100 - have;
+
+      haveCentsEl.textContent = String(have);
+      haveCents2El.textContent = String(have);
+      needCentsEl.textContent = String(need);
+
+      haveCoinsEl.innerHTML = "";
+      greedyCoins(have).forEach(v=> haveCoinsEl.appendChild(coinMini(v)));
+
+      matCoins.innerHTML = "";
+      renderMatEmpty();
+
+      needInputEq.value = "";
+      needInputSentence.value = "";
+      needInputEq.disabled = true;
+      needInputSentence.disabled = true;
+      checkAnsBtn.disabled = true;
+
+      status1.textContent = "Step 1: Put the correct coins on the mat.";
+      status1.className = "status";
+
+      setDots();
+    }
+
+    function checkCoins(){
+      if(finished) return;
+      const t = matTotal();
+
+      if(t === need){
+        stage1OK = true;
+        lockMatTokens();
+        enableAnswerInputs();
+        play(sndCorrect);
+      }else{
+        status1.textContent = `❌ Not yet. You placed ${t}¢ on the mat. Try again.`;
+        status1.className = "status bad";
+        shake(mat);
+        play(sndWrong);
+      }
+      setDots();
+    }
+
+    function lockUIAfterFinish(){
+      // lock everything except New question / New Session — Clear
+      checkCoinsBtn.disabled = true;
+      clearMatBtn.disabled = true;
+      $$(".coinBtn").forEach(b=> b.disabled = true);
+
+      needInputEq.disabled = true;
+      needInputSentence.disabled = true;
+      checkAnsBtn.disabled = true;
+    }
+
+    function trySendXAPI(score, feedback){
+      try{
+        $("#score-input").value = String(score);
+        $("#feedback-input").value = feedback || "";
+      }catch(e){}
+
+      try{
+        if(typeof updateStore === "function"){
+          try{ updateStore(); }catch(e){}
+        }else if(typeof storeState === "function"){
+          try{ storeState({score, feedback}); }catch(e){}
+        }
+      }catch(e){}
+    }
+
+    function checkAnswer(){
+      if(finished || !stage1OK) return;
+
+      needInputEq.value = clampNumStr(needInputEq.value);
+      needInputSentence.value = clampNumStr(needInputSentence.value);
+
+      const n1 = needInputEq.value==="" ? NaN : Number(needInputEq.value);
+      const n2 = needInputSentence.value==="" ? NaN : Number(needInputSentence.value);
+
+      if(n1 === need && n2 === need){
+        finished = true;
+        status1.textContent = "🎉 Well done! I have enough money to buy the $1 pen.";
+        status1.className = "status good";
+        setDots();
+        play(sndCorrect);
+        showConfetti();
+
+        // Score locks to 1
+        trySendXAPI(1, "Well done!");
+        lockUIAfterFinish();
+      }else{
+        shake($("#answerLine"));
+        play(sndWrong);
+      }
+    }
+
+    function clearForNewSessionAndReload(){
+      try{
+        const del = [];
+        for(let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if(!k) continue;
+          if(k === ACTIVITY_ID) del.push(k);
+          if(k.startsWith(ACTIVITY_ID+"::")) del.push(k);
+          if(k.startsWith("sls_scope::"+ACTIVITY_ID)) del.push(k);
+          if(k.startsWith("UFCO-firstSubmit::"+ACTIVITY_ID)) del.push(k);
+          if(k.startsWith("sls_unlike_payload::"+ACTIVITY_ID)) del.push(k);
+        }
+        del.push("UFCO-session","UFCO-resume","UFCO-last");
+        del.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+        try{ ["UFCO-session","UFCO-resume","UFCO-last"].forEach(k=>{ try{ sessionStorage.removeItem(k); }catch(e){} }); }catch(e){}
+        try{
+          const msg = {type:"clear", activityId: ACTIVITY_ID, ts: Date.now()};
+          const bc = new BroadcastChannel("xapi-state");
+          bc.postMessage(msg);
+          bc.close();
+        }catch(e){}
+      }catch(e){}
+      location.reload();
+    }
+
+    // ---------- Confetti ----------
+    const confettiCanvas = $("#confetti");
+    const cctx = confettiCanvas.getContext("2d");
+    let confettiAnim = null;
+    let pieces = [];
+
+    function resizeConfetti(){
+      const r = app.getBoundingClientRect();
+      confettiCanvas.width = Math.max(1, Math.floor(r.width));
+      confettiCanvas.height = Math.max(1, Math.floor(r.height));
+    }
+    window.addEventListener("resize", resizeConfetti, {passive:true});
+
+    function showConfetti(){
+      resizeConfetti();
+      confettiCanvas.style.display = "block";
+      pieces = [];
+      const W = confettiCanvas.width, H = confettiCanvas.height;
+      const count = Math.min(180, Math.floor(W*H/6500));
+      for(let i=0;i<count;i++){
+        pieces.push({
+          x: Math.random()*W,
+          y: -20 - Math.random()*H*0.4,
+          w: 6 + Math.random()*8,
+          h: 8 + Math.random()*12,
+          r: Math.random()*Math.PI,
+          vr: (-0.2 + Math.random()*0.4),
+          vx: -1.2 + Math.random()*2.4,
+          vy: 2.6 + Math.random()*4.4,
+          a: 0.9 + Math.random()*0.1
+        });
+      }
+      const t0 = performance.now();
+
+      function step(t){
+        const dt = Math.min(32, t - (step._last||t));
+        step._last = t;
+
+        cctx.clearRect(0,0,W,H);
+        for(const p of pieces){
+          p.x += p.vx*(dt/16);
+          p.y += p.vy*(dt/16);
+          p.r += p.vr*(dt/16);
+          p.vx *= 0.999;
+          p.vy *= 0.999;
+
+          cctx.save();
+          cctx.globalAlpha = p.a;
+          cctx.translate(p.x, p.y);
+          cctx.rotate(p.r);
+          const hue = (p.x + p.y) % 360;
+          cctx.fillStyle = `hsl(${hue} 85% 55%)`;
+          cctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+          cctx.restore();
+        }
+
+        if(t - t0 < 3500) confettiAnim = requestAnimationFrame(step);
+        else hideConfetti();
+      }
+      if(confettiAnim) cancelAnimationFrame(confettiAnim);
+      confettiAnim = requestAnimationFrame(step);
+    }
+
+    function hideConfetti(){
+      if(confettiAnim) cancelAnimationFrame(confettiAnim);
+      confettiAnim = null;
+      cctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+      confettiCanvas.style.display = "none";
+    }
+
+    // ---------- Wire up ----------
+    $$(".coinBtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const v = Number(btn.dataset.v||0);
+        addToken(v);
+      });
+    });
+
+    clearMatBtn.addEventListener("click", clearMat);
+    checkCoinsBtn.addEventListener("click", checkCoins);
+    checkAnsBtn.addEventListener("click", checkAnswer);
+    newQBtn.addEventListener("click", ()=>{
+      // unlock UI if it was locked after completion
+      checkCoinsBtn.disabled = false;
+      clearMatBtn.disabled = false;
+      $$(".coinBtn").forEach(b=> b.disabled = false);
+      newQuestion();
+    });
+    newSessionBtn.addEventListener("click", clearForNewSessionAndReload);
+
+    needInputEq.addEventListener("input", ()=> needInputEq.value = clampNumStr(needInputEq.value));
+    needInputSentence.addEventListener("input", ()=> needInputSentence.value = clampNumStr(needInputSentence.value));
+
+    [needInputEq, needInputSentence].forEach(inp=>{
+      inp.addEventListener("keydown", (e)=>{
+        if(e.key === "Enter"){
+          e.preventDefault();
+          if(!stage1OK) checkCoins();
+          else checkAnswer();
+        }
+      });
+    });
+
+    // Unlock audio
+    $("#unlockAudioBtn").addEventListener("click", async ()=>{
+      try{
+        await sndCorrect.play();
+        sndCorrect.pause();
+        sndCorrect.currentTime = 0;
+        await play(sndCorrect);
+      }catch(e){}
+    });
+    $("#testCorrectBtn").addEventListener("click", ()=>play(sndCorrect));
+    $("#testWrongBtn").addEventListener("click", ()=>play(sndWrong));
+    $("#testClockBtn").addEventListener("click", ()=>play(sndClock));
+
+    // Init
+
+    // ====== Game HUD (Speed Streak) — shared across all Savings Quest levels ======
+    (function(){
+      const LIMIT_MS = 45000;
+      const STREAK_KEY = "KS-speedstreak::SavingsQuest";
+
+      const timerText = document.getElementById("timerText");
+      const streakText = document.getElementById("streakText");
+      const dotT = document.getElementById("dotT");
+      const dotS = document.getElementById("dotS");
+
+      let streak = Number(localStorage.getItem(STREAK_KEY) || "0");
+
+      let t0 = 0;
+      let ticking = false;
+      let raf = 0;
+
+      function fmt(ms){
+        ms = Math.max(0, ms|0);
+        const s = Math.floor(ms/1000);
+        const mm = String(Math.floor(s/60)).padStart(2,"0");
+        const ss = String(s%60).padStart(2,"0");
+        return mm + ":" + ss;
+      }
+
+      function paint(){
+        if(!timerText) return;
+        if(!ticking) return;
+        timerText.textContent = fmt(Date.now()-t0);
+        raf = requestAnimationFrame(paint);
+      }
+
+      function startRun(){
+        t0 = Date.now();
+        ticking = true;
+        if(dotT) dotT.className = "dot warn";
+        if(dotS) dotS.className = "dot warn";
+        if(raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(paint);
+        if(streakText) streakText.textContent = String(streak);
+      }
+
+      function stopRun(){ ticking = false; if(raf) cancelAnimationFrame(raf); raf=0; }
+
+      function onWin(){
+        stopRun();
+        const dt = Date.now() - t0;
+        const fast = dt <= LIMIT_MS;
+
+        if(fast) streak += 1;
+        else streak = 0;
+
+        try{ localStorage.setItem(STREAK_KEY, String(streak)); }catch(e){}
+
+        if(streakText) streakText.textContent = String(streak);
+        if(dotT) dotT.className = "dot " + (fast ? "good" : "warn");
+        if(dotS) dotS.className = "dot " + (fast ? "good" : "warn");
+      }
+
+      // Wrap newQuestion so the timer restarts on replay
+      try{
+        const _nq = newQuestion;
+        newQuestion = function(){ _nq(); startRun(); };
+      }catch(e){}
+
+      // Hook whichever win-check function exists on this page
+      try{
+        if(typeof checkAnswer === "function"){
+          const _ca = checkAnswer;
+          checkAnswer = function(){ const was = finished; _ca(); if(!was && finished) onWin(); };
+        }
+      }catch(e){}
+
+      try{
+        if(typeof checkFinal === "function"){
+          const _cf = checkFinal;
+          checkFinal = function(){ const was = finished; _cf(); if(!was && finished) onWin(); };
+        }
+      }catch(e){}
+
+      // Start immediately
+      try{ startRun(); }catch(e){}
+    })();
+
+    // ====== Background Music (shared across levels) ======
+    (function(){
+      const BGM_KEY = "SQ-bgm-on";
+      const btn = document.getElementById("bgmBtn");
+      const bgm = document.getElementById("bgmAudio");
+      if(!btn || !bgm) return;
+
+      // Default ON (will start after user gesture if autoplay is blocked)
+      let on = true;
+      try{ on = (localStorage.getItem(BGM_KEY) !== "0"); }catch(e){}
+
+      function paint(){
+        btn.textContent = on ? "🎵 Music: On" : "🔇 Music: Off";
+        btn.classList.toggle("off", !on);
+      }
+
+      function applyPlayState(userInitiated){
+        paint();
+        if(!on){
+          try{ bgm.pause(); }catch(e){}
+          return;
+        }
+        bgm.volume = 0.22;
+        try{
+          const p = bgm.play();
+          if(p && p.catch) p.catch(()=>{ /* autoplay blocked */ });
+        }catch(e){}
+      }
+
+      function setOn(v, userInitiated){
+        on = !!v;
+        try{ localStorage.setItem(BGM_KEY, on ? "1" : "0"); }catch(e){}
+        applyPlayState(userInitiated);
+      }
+
+      // Click / keyboard
+      btn.addEventListener("click", ()=> setOn(!on, true));
+      btn.addEventListener("keydown", (e)=>{
+        if(e.key==="Enter" || e.key===" "){
+          e.preventDefault();
+          setOn(!on, true);
+        }
+      });
+
+      // If autoplay is blocked, first tap anywhere will start it (if ON)
+      window.addEventListener("pointerdown", ()=>{ applyPlayState(true); }, { once:true, passive:true });
+
+      // Sync across tabs/windows
+      window.addEventListener("storage", (e)=>{
+        if(e.key === BGM_KEY){
+          on = (e.newValue !== "0");
+          applyPlayState(false);
+        }
+      }, { passive:true });
+
+      applyPlayState(false);
+    })();
+
+    newQuestion();
+  </script>
+</body>
+</html>
